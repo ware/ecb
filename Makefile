@@ -25,100 +25,41 @@
 
 # $Id: Makefile,v 1.119 2010/02/22 16:33:42 berndl Exp $
 
-
-# ========================================================================
-# User configurable section
-
-# ------------------------------------------------------------------------
-# Byte-compiling ECB:
-# ------------------------------------------------------------------------
-
-# Define here the correct path to your Emacs or XEmacs binary. Ensure you
-# have set this variable to 'xemacs' if you want byte-compile with XEmacs!
-EMACS=emacs
-
-# In the following path-settings of this section use always FORWARD-SLASHES
-# as directory-separator even with MS Windows systems.
-
-# -------- Compiling ECB with the cedet-library ----------------------
-
-# cedet >= 1.0pre6 (contains a.o. semantic >= 2.0, eieio >= 0.18 and
-# speedbar >= 0.15).
 #
-# + If you use Emacs >= 23.2 and you want to use the integrated CEDET:
-#   Set this to empty (CEDET=)
+# Override vars in Makefile.conf if needed
 #
-# + If you use Emacs < 23.2 or if you want to use the author version of CEDET:
-#   Set this to the full path of your CEDET-installation.
+-include Makefile.conf
 
-#CEDET=
-CEDET=c:/Programme/emacs-23.1/site-lisp/package-development/cedet
+PLATFORM=$(shell uname -s)
 
-# You can set here more load-paths to arbitrary packages if you want. But
-# this is really not necessary!
-LOADPATH=
+# When run inside Emacs, the value is 't'
+ifeq ($(EMACS),t)
+	EMACS = emacs
+endif
 
-# Two ways to build ECB:
-# - Call "make" to byte-compile the ECB. You can savely ignore the messages.
-# - Or call
-#
-#      make [EMACS="path/to/emacs"] [CEDET="path/to/cedet" or empty]
-#
-#   if you want to set either different load-paths or Emacs-binary and
-#   you do not want edit the Makefile. Do not forget quoting the arguments
-#   if they contain spaces!
-#
-# If there are any warning messages during byte-compilation (normally there
-# are not any) you can savely ignore them!
-
-
-# ------------------------------------------------------------------------
-# Generating different online-help formats
-# ------------------------------------------------------------------------
-
-# If you want to generate all formats of online-help from the texi-source
-# you must set here the FULL paths to the required tools. The Makefile
-# tests if the tools are available on these locations, so if a tool x is
-# not available let the related setting X empty! NOTE: For generating the
-# PDF-format you will need an installed TeX and Ghostscript!
-MAKEINFO=/usr/bin/makeinfo
-TEXI2DVI=/C/Programme/texmf/miktex/bin/texi2dvi
-# You need either the dvipdfm-tool
-#DVIPDFM=/C/Programme/texmf/miktex/bin/dvipdfm
-DVIPDFM=
-# or the tools dvips and ps2pdf. If dvipdfm is available the Makefile uses
-# this one!
-DVIPS=/C/Programme/texmf/miktex/bin/dvips
-PS2PDF=/C/home/bin/ps2pdf
-
-# To generate the online-formats just call "make online-help" for info- and
-# HTML-format and "make pdf" for PDF-format.
-
-# ------------------------------------------------------------------------
-# Installing the info online-help in the Top-directory of (X)Emacs-info
-# ------------------------------------------------------------------------
-
-# Set here the path of the info subdirectory of your (X)Emacs installation
-# which contains the dir file.
-EMACSINFOPATH=/C/Programme/emacs-22.3/info
-
-# If you want to install the info-format of the online-help in the
-# Top-directory of the info-directory of (X)Emacs (see above EMACSINFOPATH)
-# then you must specify the full path of the tool install-info.
-INSTALLINFO=/usr/bin/install-info
-
-# To install the online-help just call "make install-help"
-
-# end of user configurable section
-# ========================================================================
-
-
-# ========================================================================
-# !!!!!!!!!!!!!!!!!!!!! Do not change anything below !!!!!!!!!!!!!!!!!!!!!
-# ========================================================================
-
-
-# $Id: Makefile,v 1.119 2010/02/22 16:33:42 berndl Exp $
+ifeq ($(PLATFORM),Linux)
+	EMACS ?= $(shell which emacs)
+	CEDET ?=
+	LOADPATH ?=
+	MAKEINFO ?= $(shell which makeinfo)
+	TEXI2DVI ?= $(shell which texi2dvi)
+	DVIPDFM ?= $(shell which dvipdf)
+	DVIPS ?= $(shell which dvips)
+	PS2PDF ?= $(shell which ps2pdf)
+	EMACSINFOPATH ?=
+	INSTALLINFO ?= $(shell which install-info)
+else #TODO add defaults for other platforms
+	EMACS ?= emacs
+	CEDET ?= c:/Programme/emacs-23.1/site-lisp/package-development/cedet
+	LOADPATH ?=
+	MAKEINFO ?= /usr/bin/makeinfo
+	TEXI2DVI ?= /C/Programme/texmf/miktex/bin/texi2dvi
+	DVIPDFM ?= /C/Programme/texmf/miktex/bin/dvipdfm
+	DVIPS ?= /C/Programme/texmf/miktex/bin/dvips
+	PS2PDF ?= /C/home/bin/ps2pdf
+	EMACSINFOPATH ?= /C/Programme/emacs-22.3/info
+	INSTALLINFO ?= /usr/bin/install-info
+endif
 
 # For the ECB-maintainers: Change the version-number here and not
 # elsewhere!
@@ -255,5 +196,19 @@ distrib: $(ecb_INFO_DIR)/$(ecb_INFO) prepversion autoloads ecb
 	@find ecb-$(ecb_VERSION)/$(ecb_IMAGE_DIR) -name *.png -print | xargs $(RM)
 	@tar -cvzf ecb-$(ecb_VERSION).tar.gz ecb-$(ecb_VERSION)
 	@$(RM) -R ecb-$(ecb_VERSION)
+
+printconf:
+	@echo Platform: $(PLATFORM)
+	@echo ECB version: $(ecb_VERSION)
+	@echo Emacs: $(EMACS)
+	@echo CEDET: $(CEDET)
+	@echo Load path: $(LOADPATH)
+	@echo install-info: $(INSTALLINFO)
+	@echo Emacs info path: $(EMACSINFOPATH)
+	@echo makeinfo: $(MAKEINFO)
+	@echo texi2dvi: $(TEXI2DVI)
+	@echo dvipdfm: $(DVIPDFM)
+	@echo dvips: $(DVIPS)
+	@echo ps2pdf: $(PS2PDF)
 
 # End of Makefile
