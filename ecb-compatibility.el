@@ -61,7 +61,7 @@
 
 ;; package bs.el ----------------------------------------------------------
 
-(defecb-advice bs-show before ecb-compatibility-advices
+(defun ecb-advice-bs-show (&rest args)
   "Ensures `bs-show' works well when called from another window as an
 edit-window. Does nothing if called in another frame as the `ecb-frame'."
   (when (equal (selected-frame) ecb-frame)
@@ -73,6 +73,8 @@ edit-window. Does nothing if called in another frame as the `ecb-frame'."
       (when (and (ecb-compilation-buffer-p my-bs-buffer)
                  ecb-compile-window-height)
         (display-buffer (buffer-name my-bs-buffer))))))
+
+(ecb-add-to-advice-set 'bs-show :before 'ecb-advice-bs-show 'ecb-compatibility-advices)
 
 ;; package electric.el ------------------------------------------------------
 

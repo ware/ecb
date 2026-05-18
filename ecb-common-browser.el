@@ -1,3 +1,4 @@
+;;; -*- lexical-binding: nil; -*-
 ;;; ecb-common-browser.el --- common browsing stuff for  Emacs
 
 ;; Copyright (C) 2000 - 2015 Jesper Nordenberg,
@@ -716,6 +717,28 @@ Example:
 
 (put 'defecb-advice-set 'lisp-indent-function 1)
 
+(defun ecb-add-to-advice-set (adviced-function advice-class advice-fun advice-set)
+"Stores an adviced function ADVICED-FUNCTION with ADVICE-CLASS to ADVICE-SET.
+ADVICED-FUNCTION must be an advicable object (e.g. a function, a subr
+etc...). ADVICE-CLASS must be one of :around, :after or :before. ADVICE-SET must
+be an advice-set previously defined by `defecb-advice-set'.
+
+ADVICED-FUNCTION, ADVICE-FUN and ADVICE-SET must be quoted.
+Do not quote ADVICE-CLASS."
+  (let ((fun-class-sym (list adviced-function advice-class advice-fun)))
+
+    (if (assoc advice-set ecb-adviced-function-sets)
+       (add-to-list advice-set fun-class-sym)
+       (error "The advice-set %s does not exist!" advice-set))
+
+     (if (not (member advice-class '(:around :after :before)))
+         (error "The advice-class %s is not allowed - only :around, :after and :before!"
+                (quote advice-class)))
+
+     (add-to-list 'ecb-adviced-functions fun-class-sym))
+     (ecb-advices-debug-error adviced-function advice-class 'calling))
+
+
 (defmacro defecb-advice (adviced-function advice-class advice-set advice-docstring &rest body)
   "Defines an advice for ADVICED-FUNCTION with ADVICE-CLASS for ADVICE-SET.
 ADVICED-FUNCTION must be an advicable object (e.g. a function, a subr
@@ -758,6 +781,23 @@ Example:
 
 (put 'defecb-advice 'lisp-indent-function 3)
 
+(defun ecb-enable-ecb-advice2 (func-sym ad-class ad-func arg)
+  "If ARG is greater or equal zero then enable the adviced version of
+FUNC-SYM. Otherwise disable the adviced version. The advice must be
+defined with class ADVICE-CLASS by `defecb-advice'.
+
+IMPORTANT: Do not use the function directly. Always use `ecb-enable-advices',
+`ecb-disable-advices' or `ecb-with-original-adviced-function-set'!."
+  (if (< arg 0)
+    (progn
+      (message "Advice disable : %s class %s with %s" func-sym ad-class ad-func )
+      (advice-remove func-sym ad-func)
+      (ecb-advices-debug-error func-sym ad-class 'disabling))
+
+    (message "Advice enable : %s class %s with %s" func-sym ad-class ad-func )
+    (advice-add func-sym ad-class ad-func))
+    (ecb-advices-debug-error func-sym ad-class 'enabling))
+
 (defun ecb-enable-ecb-advice (function-symbol advice-class arg)
   "If ARG is greater or equal zero then enable the adviced version of
 FUNCTION-SYMBOL. Otherwise disable the adviced version. The advice must be
@@ -765,14 +805,22 @@ defined with class ADVICE-CLASS by `defecb-advice'.
 
 IMPORTANT: Do not use the function directly. Always use `ecb-enable-advices',
 `ecb-disable-advices' or `ecb-with-original-adviced-function-set'!."
-  (if (< arg 0)
-      (progn
-        (ad-disable-advice function-symbol advice-class 'ecb)
-        (ad-activate function-symbol)
-        (ecb-advices-debug-error function-symbol advice-class 'disabling))
-    (ad-enable-advice function-symbol advice-class 'ecb)
-    (ad-activate function-symbol)
-    (ecb-advices-debug-error function-symbol advice-class 'enabling)))
+
+  (if (and (listp advice-class)
+           (string-prefix-p ":" (symbol-name (car advice-class))))
+      (let ((ad-class) (ad-func))
+        (setq ad-class (car advice-class))
+        (setq ad-func  (nth 1 advice-class))
+        (ecb-enable-ecb-advice2 function-symbol ad-class ad-func arg))
+
+     (if (< arg 0)
+        (progn
+          (ad-disable-advice function-symbol advice-class 'ecb)
+          (ad-activate function-symbol)
+          (ecb-advices-debug-error function-symbol advice-class 'disabling))
+      (ad-enable-advice function-symbol advice-class 'ecb)
+      (ad-activate function-symbol)
+      (ecb-advices-debug-error function-symbol advice-class 'enabling))))
 
 
 (defun ecb-enable-advices (adviced-function-set-var)
